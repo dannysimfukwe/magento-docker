@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  magento:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      MAGENTO_DB_HOST: db
+      MAGENTO_DB_USER: magento
+      MAGENTO_DB_PASSWORD: magento
+      MAGENTO_DB_NAME: magento
+    volumes:
+      - magento:/var/www/html
+    depends_on:
+      - db
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: magento
+      MYSQL_USER: magento
+      MYSQL_PASSWORD: magento
+    volumes:
+      - db:/var/lib/mysql
+volumes:
+  magento:
+  db:
