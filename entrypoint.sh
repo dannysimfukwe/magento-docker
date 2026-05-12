@@ -1,26 +1,29 @@
 #!/bin/bash
 set -e
 
-echo "=== Initializing Magento files ==="
+echo "=== Magento Custom Entrypoint ==="
 
-if [ ! -d "/var/www/html/bin" ]; then
-    echo "Magento files not found, downloading..."
+# Download Magento files if not present
+if [ ! -d "/var/www/html/bin" ] || [ ! -f "/var/www/html/composer.json" ]; then
+    echo "Downloading Magento files..."
     /usr/local/bin/docker-php-entrypoint setup
-else
-    echo "Magento files already present"
+    sleep 10
 fi
 
-sleep 2
+# Check if Magento is installed
+if [ -f "/var/www/html/app/etc/env.php" ]; then
+    echo "Magento already installed"
+else
+    echo "Installing Magento..."
 
-if [ ! -f "/var/www/html/app/etc/env.php" ] && [ -n "$MAGENTO_DB_HOST" ]; then
-    echo "=== Running Magento Auto-Install ==="
-    cd /var/www/html
+    # Create env.php manually if DB env vars are provided
+    if [ -n "$MAGENTO_DB_HOST" ]; then
+        mkdir -p /var/www/html/app/etc
 
-    mkdir -p /var/www/html/app/etc
+        # Generate encryption key
+        CRYPT_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
 
-    CRYPT_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
-
-    cat > /var/www/html/app/etc/env.php << ENVEOF
+        cat > /var/www/html/app/etc/env.php << ENVEOF
 <?php
 return [
     'db' => [
@@ -53,28 +56,28 @@ return [
 ];
 ENVEOF
 
-    chown www-data:www-data /var/www/html/app/etc/env.php
-    chmod 644 /var/www/html/app/etc/env.php
+        chown www-data:www-data /var/www/html/app/etc/env.php
+        chmod 644 /var/www/html/app/etc/env.php
 
-    if [ -n "$MAGENTO_BASE_URL" ]; then
-        echo "Installing Magento..."
-        php bin/magento setup:install \
-            --base-url="${MAGENTO_BASE_URL}" \
-            --backend-frontname="${MAGENTO_BACKEND_FRONTNAME:-admin}" \
-            --db-host="${MAGENTO_DB_HOST}" \
-            --db-name="${MAGENTO_DB_NAME:-magento}" \
-            --db-user="${MAGENTO_DB_USER:-root}" \
-            --db-password="${MAGENTO_DB_PASSWORD}" \
-            --admin-firstname=Admin \
-            --admin-lastname=Admin \
-            --admin-email="${MAGENTO_ADMIN_EMAIL:-admin@example.com}" \
-            --admin-user="${MAGENTO_ADMIN_USER:-admin}" \
-            --admin-password="${MAGENTO_ADMIN_PASSWORD:-Admin123456}" \
-            --skip-db-validation \
-            2>&1 || echo "Magento installation completed"
+        # Run Magento setup:install if base URL is provided
+        if [ -n "$MAGENTO_BASE_URL" ]; then
+            cd /var/www/html
+            php bin/magento setup:install \
+                --base-url="${MAGENTO_BASE_URL}" \
+                --backend-frontname="${MAGENTO_BACKEND_FRONTNAME:-admin}" \
+                --db-host="${MAGENTO_DB_HOST}" \
+                --db-name="${MAGENTO_DB_NAME:-magento}" \
+                --db-user="${MAGENTO_DB_USER:-root}" \
+                --db-password="${MAGENTO_DB_PASSWORD}" \
+                --admin-firstname=Admin \
+                --admin-lastname=Admin \
+                --admin-email="${MAGENTO_ADMIN_EMAIL:-admin@example.com}" \
+                --admin-user="${MAGENTO_ADMIN_USER:-admin}" \
+                --admin-password="${MAGENTO_ADMIN_PASSWORD:-Admin123456}" \
+                --skip-db-validation \
+                2>&1 || echo "Setup completed or already configured"
+        fi
     fi
-
-    echo "=== Auto-Install Complete ==="
 fi
 
 echo "=== Starting PHP-FPM ==="
