@@ -10,6 +10,9 @@ if [ ! -d "/var/www/html/bin" ] || [ ! -f "/var/www/html/composer.json" ]; then
     sleep 10
 fi
 
+# Fix PHP-FPM socket permissions - nginx runs as nobody, needs access
+sed -i 's|listen.mode = 0660|listen.mode = 0666|g' /usr/local/etc/php-fpm.d/zz-docker-shinsenter-php.conf
+
 # Check if Magento is installed
 if [ -f "/var/www/html/app/etc/env.php" ]; then
     echo "Magento already installed"
@@ -84,6 +87,9 @@ echo "=== Starting nginx and PHP-FPM ==="
 
 # Start nginx in background
 nginx &
+
+# Wait a moment for nginx to start
+sleep 2
 
 # Start PHP-FPM (this will keep the container running)
 exec /usr/local/bin/docker-php-entrypoint "$@"
