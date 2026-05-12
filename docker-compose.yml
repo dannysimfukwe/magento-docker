@@ -1,27 +1,54 @@
 version: '3.8'
+
 services:
-  magento:
-    build: .
+  app:
+    image: bitnami/magento:latest
     ports:
-      - "8080:80"
+      - "80:8080"
+      - "443:8443"
     environment:
-      - MAGENTO_DB_HOST=db
-      - MAGENTO_DB_USER=magento
-      - MAGENTO_DB_PASSWORD=magento
-      - MAGENTO_DB_NAME=magento
+      MAGENTO_HOST: localhost
+      MAGENTO_DATABASE_HOST: mariadb
+      MAGENTO_DATABASE_PORT_NUMBER: 3306
+      MAGENTO_DATABASE_NAME: bitnami_magento
+      MAGENTO_DATABASE_USER: bn_magento
+      MAGENTO_DATABASE_PASSWORD: bitnami123
+      ELASTICSEARCH_HOST: elasticsearch
     volumes:
-      - magento:/var/www/html
+      - magento_data:/bitnami/magento
     depends_on:
-      - db
-  db:
-    image: mysql:8.0
+      - mariadb
+      - elasticsearch
+    networks:
+      - magento_network
+
+  mariadb:
+    image: bitnami/mariadb:latest
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: magento
-      MYSQL_USER: magento
-      MYSQL_PASSWORD: magento
+      MARIADB_ROOT_PASSWORD: rootpassword123
+      MARIADB_USER: bn_magento
+      MARIADB_PASSWORD: bitnami123
+      MARIADB_DATABASE: bitnami_magento
     volumes:
-      - db:/var/lib/mysql
+      - mariadb_data:/bitnami/mariadb
+    networks:
+      - magento_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.16
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - magento_network
+
 volumes:
-  magento:
-  db:
+  magento_data:
+  mariadb_data:
+  es_data:
+
+networks:
+  magento_network:
+    driver: bridge
