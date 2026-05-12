@@ -6,10 +6,10 @@ set -e
 
 # Run the original entrypoint to populate Magento files
 echo "=== Initializing Magento files ==="
-/usr/local/bin/container-entrypoint setup 2>/dev/null || true
+/usr/local/bin/docker-php-entrypoint setup 2>/dev/null || true
 
 # Wait a moment for files to be ready
-sleep 2
+sleep 5
 
 # Now check if we need to run auto-install
 if [ -d "/var/www/html/bin" ] && [ ! -f "/var/www/html/app/etc/env.php" ] && [ -n "$MAGENTO_DB_HOST" ]; then
@@ -81,4 +81,4 @@ ENVEOF
 fi
 
 # Run the original container entrypoint with the actual command
-exec /usr/local/bin/container-entrypoint "$@"
+exec /usr/local/bin/docker-php-entrypoint "$@"
