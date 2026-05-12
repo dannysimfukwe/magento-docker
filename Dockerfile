@@ -1,6 +1,3 @@
-FROM magento/magento2:latest
-
-# Enable Apache mod_rewrite for pretty URLs
-RUN a2enmod rewrite rewrite
+FROM shinsenter/magento:latest
 
 EXPOSE 80

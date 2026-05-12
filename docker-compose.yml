@@ -5,10 +5,10 @@ services:
     ports:
       - "8080:80"
     environment:
-      MAGENTO_DB_HOST: db
-      MAGENTO_DB_USER: magento
-      MAGENTO_DB_PASSWORD: magento
-      MAGENTO_DB_NAME: magento
+      - MAGENTO_DB_HOST=db
+      - MAGENTO_DB_USER=magento
+      - MAGENTO_DB_PASSWORD=magento
+      - MAGENTO_DB_NAME=magento
     volumes:
       - magento:/var/www/html
     depends_on:
