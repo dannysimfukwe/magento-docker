@@ -1,28 +1,25 @@
 #!/bin/bash
 set -e
 
-# This script runs first to populate Magento files, then auto-installs
-# The shinsenter/magento entrypoint extracts Magento files to /var/www/html
-
-# Run the original entrypoint to populate Magento files
 echo "=== Initializing Magento files ==="
-/usr/local/bin/docker-php-entrypoint setup 2>/dev/null || true
 
-# Wait a moment for files to be ready
-sleep 5
+if [ ! -d "/var/www/html/bin" ]; then
+    echo "Magento files not found, downloading..."
+    /usr/local/bin/docker-php-entrypoint setup
+else
+    echo "Magento files already present"
+fi
 
-# Now check if we need to run auto-install
-if [ -d "/var/www/html/bin" ] && [ ! -f "/var/www/html/app/etc/env.php" ] && [ -n "$MAGENTO_DB_HOST" ]; then
+sleep 2
+
+if [ ! -f "/var/www/html/app/etc/env.php" ] && [ -n "$MAGENTO_DB_HOST" ]; then
     echo "=== Running Magento Auto-Install ==="
     cd /var/www/html
 
-    # Create directory
     mkdir -p /var/www/html/app/etc
 
-    # Generate encryption key
     CRYPT_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '\n')
 
-    # Create env.php
     cat > /var/www/html/app/etc/env.php << ENVEOF
 <?php
 return [
@@ -80,5 +77,5 @@ ENVEOF
     echo "=== Auto-Install Complete ==="
 fi
 
-# Run the original container entrypoint with the actual command
+echo "=== Starting PHP-FPM ==="
 exec /usr/local/bin/docker-php-entrypoint "$@"
