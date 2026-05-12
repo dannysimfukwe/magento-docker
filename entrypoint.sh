@@ -80,5 +80,10 @@ ENVEOF
     fi
 fi
 
-echo "=== Starting PHP-FPM ==="
+echo "=== Starting nginx and PHP-FPM ==="
+
+# Start nginx in background
+nginx &
+
+# Start PHP-FPM (this will keep the container running)
 exec /usr/local/bin/docker-php-entrypoint "$@"
