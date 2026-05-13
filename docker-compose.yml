@@ -52,11 +52,14 @@ services:
       - magento_network
 
   elasticsearch:
-    image: bitnami/elasticsearch:7
+    image: elasticsearch:7.17.9
     container_name: elasticsearch
     restart: always
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
     volumes:
-      - elasticsearch_data:/bitnami/elasticsearch/data
+      - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
       - magento_network
 
