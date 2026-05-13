@@ -1,102 +1,67 @@
 # Magento Docker for 42helv
 
-## Requirements
+## Quick Start (Bitnami Image)
 
-- OpenSearch (required for Magento 2.4+)
+This template uses the **Bitnami Magento** image which comes pre-installed and configured.
 
-## OpenSearch Setup
+### Prerequisites
 
-Run OpenSearch as a persistent service on your server:
+1. **Elasticsearch** - Required for Magento 2.4+ catalog search
 
 ```bash
-# Create and start OpenSearch container
+# Deploy Elasticsearch as system service (auto-restart on reboot)
 docker run -d \
-  --name opensearch \
+  --name elasticsearch \
   --network 42helv-net \
   -p 9200:9200 \
-  -p 9600:9600 \
   -e "discovery.type=single-node" \
-  -e "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" \
+  -e "ES_JAVA_OPTS=-Xms512m -Xmx512m" \
   --restart=always \
-  opensearchproject/opensearch:2.0.0
+  bitnami/elasticsearch:7
 ```
 
-## Environment Configuration
+### Configuration
 
-Update your Magento container's `app/etc/env.php` to use OpenSearch:
+The Bitnami image handles most configuration automatically via environment variables:
 
-```php
-<?php
-return [
-    'db' => [
-        'connection' => [
-            'default' => [
-                'host' => 'site_39',  // Your database container
-                'dbname' => 'mysql_l3cx',
-                'username' => 'admin',
-                'password' => 'your_password',
-                'active' => '1'
-            ]
-        ],
-        'table_prefix' => ''
-    ],
-    'resource' => [
-        'default_setup' => [
-            'connection' => 'default'
-        ]
-    ],
-    'x-frame-options' => 'SAMEORIGIN',
-    'crypt' => [
-        'key' => 'your_encryption_key'
-    ],
-    'session' => [
-        'save' => 'files'
-    ],
-    'install' => [
-        'date' => 'Mon, 12 May 2026 00:00:00 +0000'
-    ],
-    'backend' => [
-        'frontName' => 'admin'
-    ],
-    'queue' => [
-        'consumers_wait_for_messages' => 0
-    ],
-    'system' => [
-        'default' => [
-            'catalog' => [
-                'search' => [
-                    'engine' => 'opensearch',
-                    'opensearch_server' => 'opensearch',
-                    'opensearch_port' => '9200'
-                ]
-            ]
-        ]
-    ]
-];
-```
+| Variable | Description | Default |
+|---------|-------------|---------|
+| `MAGENTO_HOST` | Your domain | - |
+| `MAGENTO_USERNAME` | Admin username | admin |
+| `MAGENTO_PASSWORD` | Admin password | - |
+| `MARIADB_HOST` | Database container | - |
+| `ELASTICSEARCH_HOST` | Search server | - |
 
-## PHP-FPM Socket Permission Fix
+### Deploy
 
-If you encounter 502 Bad Gateway with permission errors, fix the PHP-FPM socket:
+The 42helv system automatically handles:
+- Container networking
+- Traefik routing
+- SSL certificates
+- Auto-restart on server reboot
 
+## Troubleshooting
+
+### 502 Bad Gateway
+If you get 502 errors, check the container logs:
 ```bash
-docker exec <magento-container> chmod 666 /run/php-fpm.sock
+docker logs <container-name>
 ```
 
-## Magento Setup Commands
-
-After installation, run:
-
+### Database Connection Issues
+Ensure MariaDB is running and accessible:
 ```bash
-# Enable all modules
-docker exec <magento-container> bin/magento module:enable --all
-
-# Run setup upgrade
-docker exec <magento-container> bin/magento setup:upgrade
-
-# Compile DI
-docker exec <magento-container> bin/magento setup:di:compile
-
-# Clear cache
-docker exec <magento-container> bin/magento cache:flush
+docker exec magento ping mariadb
 ```
+
+### First Run Setup
+On first deployment, Magento may take 2-5 minutes to initialize. Check logs:
+```bash
+docker logs -f magento
+```
+
+## Access
+
+After deployment:
+- Frontend: `https://your-site.42helv.com`
+- Admin: `https://your-site.42helv.com/admin`

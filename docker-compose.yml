@@ -1,28 +1,31 @@
 version: '3.8'
 
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  magento:
+    image: bitnami/magento:2.4
+    container_name: magento
+    restart: always
     ports:
-      - "80:80"
-      - "443:443"
+      - "80:8080"
+      - "443:8443"
     environment:
-      - TRAEFIK_HOST=magento.local
-      - MAGENTO_DB_HOST=mariadb
-      - MAGENTO_DB_NAME=magento
-      - MAGENTO_DB_USER=root
-      - MAGENTO_DB_PASSWORD=magento123
-      - MAGENTO_BASE_URL=http://magento.local
-      - MAGENTO_BACKEND_FRONTNAME=admin
-      - MAGENTO_ADMIN_EMAIL=admin@example.com
-      - MAGENTO_ADMIN_USER=admin
-      - MAGENTO_ADMIN_PASSWORD=Admin123456
+      - MAGENTO_HOST=magento.local
+      - MAGENTO_USERNAME=admin
+      - MAGENTO_PASSWORD=admin123
+      - MAGENTO_EMAIL=admin@example.com
+      - MAGENTO_ADMIN_URL_PREFIX=admin
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT_NUMBER=3306
+      - MARIADB_DATABASE_NAME=bitnami_magento
+      - MARIADB_USERNAME=bn_magento
+      - MARIADB_PASSWORD=magento_db_password
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT_NUMBER=9200
     volumes:
-      - app_data:/var/www/html
+      - magento_data:/bitnami/magento
     depends_on:
       - mariadb
+      - elasticsearch
     networks:
       - magento_network
       - traefik
@@ -32,21 +35,35 @@ services:
       - "traefik.http.routers.magento.rule=Host(`magento.local`)"
       - "traefik.http.routers.magento.entrypoints=web,websecure"
       - "traefik.http.routers.magento.tls=true"
-      - "traefik.http.services.magento.loadbalancer.server.port=80"
+      - "traefik.http.services.magento.loadbalancer.server.port=8080"
 
   mariadb:
-    image: mariadb:latest
+    image: bitnami/mariadb:10.6
+    container_name: mariadb
+    restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=magento123
-      - MYSQL_DATABASE=magento
+      - MARIADB_USER=bn_magento
+      - MARIADB_PASSWORD=magento_db_password
+      - MARIADB_DATABASE=bitnami_magento
+      - ALLOW_EMPTY_PASSWORD=yes
     volumes:
-      - db_data:/var/lib/mysql
+      - mariadb_data:/bitnami/mariadb
+    networks:
+      - magento_network
+
+  elasticsearch:
+    image: bitnami/elasticsearch:7
+    container_name: elasticsearch
+    restart: always
+    volumes:
+      - elasticsearch_data:/bitnami/elasticsearch/data
     networks:
       - magento_network
 
 volumes:
-  app_data:
-  db_data:
+  magento_data:
+  mariadb_data:
+  elasticsearch_data:
 
 networks:
   magento_network:
